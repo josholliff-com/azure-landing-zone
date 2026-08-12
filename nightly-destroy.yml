@@ -1,0 +1,75 @@
+name: Nightly Destroy
+
+# The single most important workflow in this repo.
+# Keeps the bill survivable and proves the code is genuinely idempotent,
+# because you rebuild from zero every morning.
+on:
+  schedule:
+    - cron: '0 3 * * *'   # 11pm Eastern during EDT
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DESTROY to confirm a manual run'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_VERSION: '1.9.8'
+  WORKING_DIR: environments/dev
+  ARM_USE_OIDC: true
+  ARM_USE_AZUREAD: true
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    environment: dev
+    if: github.event_name == 'schedule' || github.event.inputs.confirm == 'DESTROY'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Init
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ vars.TFSTATE_RG }}" \
+            -backend-config="storage_account_name=${{ vars.TFSTATE_SA }}" \
+            -backend-config="container_name=${{ vars.TFSTATE_CONTAINER }}" \
+            -backend-config="key=dev.tfstate"
+
+      - name: Destroy
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform destroy -auto-approve
+
+      # Catches anything created outside Terraform, which will happen, and
+      # catching it is the lesson.
+      - name: Report orphaned resources
+        run: |
+          echo "Resources still present in the subscription:"
+          az resource list \
+            --query "[?resourceGroup!='${{ vars.TFSTATE_RG }}'].{name:name,type:type,rg:resourceGroup}" \
+            -o table
+
+      - name: Report current spend
+        run: |
+          az consumption usage list \
+            --start-date "$(date -d '30 days ago' +%Y-%m-%d)" \
+            --end-date "$(date +%Y-%m-%d)" \
+            --query "sum([].pretaxCost)" -o tsv \
+            | xargs -I{} echo "30-day pretax spend: \${}"

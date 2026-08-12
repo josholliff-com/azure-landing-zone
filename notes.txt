@@ -1,0 +1,45 @@
+GitHub Actions repository VARIABLES
+Variables, not secrets. None of these are sensitive, and treating
+them as variables is a defensible point in a code review.
+
+  AZURE_CLIENT_ID        8c757f1f-c7a6-4fb7-ad8a-83812d58b950
+  AZURE_TENANT_ID        f6ccb0da-6552-4f6a-beae-cc89849d31c7
+  AZURE_SUBSCRIPTION_ID  601edf6b-1007-4724-bd79-c089a7b173fa
+  TFSTATE_RG             jbo-tfstate-eus2-rg
+  TFSTATE_SA             jbotfstatebeinghzr
+  TFSTATE_CONTAINER      tfstate
+
+Set them with the gh CLI:
+
+  gh variable set AZURE_CLIENT_ID --body "8c757f1f-c7a6-4fb7-ad8a-83812d58b950" --repo josholliff-com/azure-landing-zone
+  gh variable set AZURE_TENANT_ID --body "f6ccb0da-6552-4f6a-beae-cc89849d31c7" --repo josholliff-com/azure-landing-zone
+  gh variable set AZURE_SUBSCRIPTION_ID --body "601edf6b-1007-4724-bd79-c089a7b173fa" --repo josholliff-com/azure-landing-zone
+  gh variable set TFSTATE_RG --body "jbo-tfstate-eus2-rg" --repo josholliff-com/azure-landing-zone
+  gh variable set TFSTATE_SA --body "jbotfstatebeinghzr" --repo josholliff-com/azure-landing-zone
+  gh variable set TFSTATE_CONTAINER --body "tfstate" --repo josholliff-com/azure-landing-zone
+
+Backend block for environments/dev/backend.tf:
+
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "jbo-tfstate-eus2-rg"
+    storage_account_name = "jbotfstatebeinghzr"
+    container_name       = "tfstate"
+    key                  = "dev.tfstate"
+    use_azuread_auth     = true
+    use_oidc             = true
+  }
+}
+Next steps:
+  1. Create the "dev" environment in GitHub repo settings.
+  2. Set the repository variables above.
+  3. Write environments/dev/backend.tf with the block above.
+  4. Open a PR. Plan should run and comment. That is Phase 0 done.
+
+
+AZURE_CLIENT_ID       : 8c757f1f-c7a6-4fb7-ad8a-83812d58b950
+AZURE_TENANT_ID       : f6ccb0da-6552-4f6a-beae-cc89849d31c7
+AZURE_SUBSCRIPTION_ID : 601edf6b-1007-4724-bd79-c089a7b173fa
+TFSTATE_RG            : jbo-tfstate-eus2-rg
+TFSTATE_SA            : jbotfstatebeinghzr
+TFSTATE_CONTAINER     : tfstate
