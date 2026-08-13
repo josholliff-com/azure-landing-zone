@@ -18,3 +18,13 @@ resource "azurerm_resource_group" "main" {
     DataClassification = "internal"
   }
 }
+
+data "azurerm_client_config" "current" {}
+
+module "management_groups" {
+  source = "../../modules/management-groups"
+
+  org_code        = "jbo"
+  root_parent_id  = "/providers/Microsoft.Management/managementGroups/${data.azurerm_client_config.current.tenant_id}"
+  subscription_id = data.azurerm_client_config.current.subscription_id
+}
