@@ -4,6 +4,10 @@ Each record captures one decision: what forced it, what was considered, what was
 
 The [template](template.md) is the starting point for new records.
 
-| # | Decision | Status | Phase |
-|---|---|---|---|
-| [0001](0001-remote-state-and-oidc.md) | Remote state in Azure Storage, pipeline auth via GitHub OIDC | Accepted | 0 |
+|#|Decision|Status|Phase|
+|-|-|-|-|
+|[0001](0001-remote-state-and-oidc.md)|Remote state in Azure Storage, pipeline auth via GitHub OIDC|Accepted|0|
+|[0002](0002-management-group-hierarchy.md)|CAF-aligned management group hierarchy, three levels deep|Accepted|1|
+
+
+
