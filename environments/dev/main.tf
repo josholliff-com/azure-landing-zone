@@ -38,5 +38,5 @@ module "policy" {
   location            = "eastus2"
 
   enable_assignments = true
-  tag_effect         = "Audit"
+  tag_effect         = "Modify"
 }
