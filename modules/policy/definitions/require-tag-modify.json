@@ -1,0 +1,57 @@
+{
+  "mode": "Indexed",
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "[concat('tags[', parameters('tagName'), ']')]",
+          "exists": "false"
+        },
+        {
+          "field": "type",
+          "notEquals": "Microsoft.Resources/subscriptions/resourceGroups"
+        }
+      ]
+    },
+    "then": {
+      "effect": "[parameters('effect')]",
+      "details": {
+        "roleDefinitionIds": [
+          "/providers/Microsoft.Authorization/roleDefinitions/4a9ae827-6dc8-4573-8ac7-8239d42aa03f"
+        ],
+        "operations": [
+          {
+            "operation": "add",
+            "field": "[concat('tags[', parameters('tagName'), ']')]",
+            "value": "[parameters('tagValue')]"
+          }
+        ]
+      }
+    }
+  },
+  "parameters": {
+    "tagName": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Tag name",
+        "description": "Name of the required tag, for example CostCenter."
+      }
+    },
+    "tagValue": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Tag value",
+        "description": "Value applied when the tag is absent."
+      }
+    },
+    "effect": {
+      "type": "String",
+      "allowedValues": ["Audit", "Modify", "Deny", "Disabled"],
+      "defaultValue": "Audit",
+      "metadata": {
+        "displayName": "Effect",
+        "description": "Audit first, then Modify with a remediation task, then Deny. See ADR 0003."
+      }
+    }
+  }
+}
