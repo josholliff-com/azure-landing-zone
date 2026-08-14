@@ -37,5 +37,6 @@ module "policy" {
   lz_corp_id          = module.management_groups.lz_corp_id
   location            = "eastus2"
 
-  enable_assignments = false
+  enable_assignments = true
+  tag_effect         = "Audit"
 }
