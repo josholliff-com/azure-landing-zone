@@ -1,0 +1,33 @@
+{
+  "mode": "Indexed",
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "equals": "Microsoft.Network/networkInterfaces"
+        },
+        {
+          "not": {
+            "field": "Microsoft.Network/networkInterfaces/ipConfigurations[*].publicIpAddress.id",
+            "notLike": "*"
+          }
+        }
+      ]
+    },
+    "then": {
+      "effect": "[parameters('effect')]"
+    }
+  },
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "allowedValues": ["Audit", "Deny", "Disabled"],
+      "defaultValue": "Audit",
+      "metadata": {
+        "displayName": "Effect",
+        "description": "Start at Audit. Move to Deny only after the compliance view is clean."
+      }
+    }
+  }
+}
