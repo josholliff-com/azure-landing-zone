@@ -176,23 +176,29 @@ resource "azurerm_management_group_policy_assignment" "deny_nic_public_ip" {
   })
 }
 
-# Modify and DeployIfNotExists require an identity to act with, and an identity
-# requires a location. Both appear only when the effect needs them.
+# The identity requirement is driven by the DEFINITION content, not by the
+# runtime effect value. This definition carries then.details with
+# roleDefinitionIds and operations, so Azure requires an identity on EVERY
+# assignment of it, including at Audit where those details never execute.
+#
+# Discovered as a ResourceIdentityRequired 400 during the Audit rollout, on
+# three of seven resources, after four had already succeeded. Microsoft avoids
+# this in their built-ins by shipping "Require a tag on resources" and
+# "Add a tag to resources" as two separate definitions. See ADR 0003.
 resource "azurerm_management_group_policy_assignment" "require_tag" {
   for_each = var.enable_assignments ? var.required_tags : {}
 
+  # Policy assignment names cap at 24 characters at management group scope,
+  # which is why DataClassification truncates to jbo-tag-dataclassificati.
   name                 = substr("${var.org_code}-tag-${lower(each.key)}", 0, 24)
   display_name         = "Require tag: ${each.key}"
   management_group_id  = var.landing_zones_id
   policy_definition_id = azurerm_policy_definition.require_tag.id
 
-  location = var.tag_effect == "Modify" ? var.location : null
+  location = var.location
 
-  dynamic "identity" {
-    for_each = var.tag_effect == "Modify" ? [1] : []
-    content {
-      type = "SystemAssigned"
-    }
+  identity {
+    type = "SystemAssigned"
   }
 
   parameters = jsonencode({
@@ -203,9 +209,9 @@ resource "azurerm_management_group_policy_assignment" "require_tag" {
 }
 
 # Policy does NOT grant its own identity the role named in roleDefinitionIds.
-# Miss this and remediation fails with an error that never mentions permissions.
+# Granted at every stage so propagation has settled before the effect flips.
 resource "azurerm_role_assignment" "tag_remediation" {
-  for_each = var.enable_assignments && var.tag_effect == "Modify" ? var.required_tags : {}
+  for_each = var.enable_assignments ? var.required_tags : {}
 
   scope                = var.landing_zones_id
   role_definition_name = "Tag Contributor"
@@ -217,4 +223,8 @@ output "definition_ids" {
     deny_nic_public_ip = azurerm_policy_definition.deny_nic_public_ip.id
     require_tag        = azurerm_policy_definition.require_tag.id
   }
+}
+
+output "tag_assignment_ids" {
+  value = { for k, v in azurerm_management_group_policy_assignment.require_tag : k => v.id }
 }
